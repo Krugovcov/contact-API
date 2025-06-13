@@ -51,7 +51,7 @@ async def get_current_user(
     db: AsyncSession = Depends(get_db),
 ):
     public_id = f"Web16/{user.email}"
-    res = cloudinary.uploader.upload(file.file, public_id=public_id, owerite=True)
+    res = cloudinary.uploader.upload(file.file, public_id=public_id, overwrite=True)
     print(res)
     res_url = cloudinary.CloudinaryImage(public_id).build_url(
         width=250, height=250, crop="fill", version=res.get("version")
