@@ -24,6 +24,16 @@ async def get_contacts(limit: int, offset: int, db: AsyncSession, name: str = No
 
 
 async def get_contacts_birthday(db: AsyncSession, user_id: int):
+    """
+    Short summary of the function.
+
+    Args:
+        db (AsyncSession): Database session.
+        user_id (int): ID of the user.
+
+    Returns:
+        ReturnType: Description of the return value.
+    """
     today = datetime.today().date()
     seven_days_later = today + timedelta(days=7)
     
@@ -42,6 +52,7 @@ async def get_contacts_birthday(db: AsyncSession, user_id: int):
     return result.scalars().all()
 
 async def get_contact_by_id(contact_id: int, db: AsyncSession, user_id: int):
+    
     stmt = select(ContactBook).filter_by(id=contact_id, user_id=user_id)
     result = await db.execute(stmt)
     return result.scalar_one_or_none()

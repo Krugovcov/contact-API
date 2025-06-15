@@ -30,5 +30,12 @@ sessionmanager = DatabaseSessionManager(config.DB_URL)
 
 
 async def get_db():
+    """
+    Asynchronous generator function that provides a database session for use in dependency injection.
+    Yields:
+        AsyncSession: An active asynchronous database session.
+    Usage:
+        Used as a dependency in FastAPI routes to interact with the database.
+    """
     async with sessionmanager.session() as session:
         yield session

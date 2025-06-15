@@ -40,6 +40,21 @@ async def signup(body: UserSchema, bt: BackgroundTasks, request: Request, db: As
 
 @router.post("/login",  response_model=TokenSchema)
 async def login(body: OAuth2PasswordRequestForm = Depends(), db: AsyncSession = Depends(get_db)):
+    """
+    Handles user login by verifying credentials and generating JWT tokens.
+
+    Args:
+        body (OAuth2PasswordRequestForm, optional): The form data containing username (email) and password. Provided by FastAPI dependency injection.
+        db (AsyncSession, optional): The asynchronous database session. Provided by FastAPI dependency injection.
+
+    Raises:
+        HTTPException: If the user with the given email does not exist.
+        HTTPException: If the user's email is not confirmed.
+        HTTPException: If the provided password is invalid.
+
+    Returns:
+        dict: A dictionary containing the access token, refresh token, and token type.
+    """
     user = await repositories_users.get_user_by_email(body.username, db)
     if user is None:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid email")
@@ -55,8 +70,25 @@ async def login(body: OAuth2PasswordRequestForm = Depends(), db: AsyncSession = 
 
 
 @router.get('/refresh_token',  response_model=TokenSchema)
-async def refresh_token(credentials: HTTPAuthorizationCredentials = Depends(get_refresh_token),
-                        db: AsyncSession = Depends(get_db)):
+async def refresh_token(credentials: HTTPAuthorizationCredentials = Depends(get_refresh_token),db: AsyncSession = Depends(get_db)):
+    """
+    Refreshes the access and refresh tokens for an authenticated user.
+    Args:
+        credentials (HTTPAuthorizationCredentials): The HTTP authorization credentials containing the refresh token.
+        db (AsyncSession): The asynchronous database session dependency.
+    Returns:
+        dict: A dictionary containing the new access token, refresh token, and token type.
+    Raises:
+        HTTPException: If the provided refresh token is invalid or does not match the user's stored token.
+    Process:
+        - Decodes the provided refresh token to extract the user's email.
+        - Retrieves the user from the database using the extracted email.
+        - Validates that the provided refresh token matches the one stored for the user.
+        - If valid, generates new access and refresh tokens.
+        - Updates the user's stored refresh token in the database.
+        - Returns the new tokens and token type.
+    """
+    
     token = credentials.credentials
     email = await auth_service.decode_refresh_token(token)
     user = await repositories_users.get_user_by_email(email, db)
@@ -72,6 +104,19 @@ async def refresh_token(credentials: HTTPAuthorizationCredentials = Depends(get_
 
 @router.get('/confirmed_email/{token}')
 async def confirmed_email(token: str, db: AsyncSession = Depends(get_db)):
+    """
+    Confirms a user's email address using a verification token.
+
+    Args:
+        token (str): The email verification token.
+        db (AsyncSession, optional): The database session dependency.
+
+    Returns:
+        dict: A message indicating whether the email was already confirmed or has just been confirmed.
+
+    Raises:
+        HTTPException: If the user does not exist or the verification fails.
+    """
     email = await auth_service.get_email_from_token(token)
     user = await repositories_users.get_user_by_email(email, db)
     if user is None:
@@ -83,8 +128,22 @@ async def confirmed_email(token: str, db: AsyncSession = Depends(get_db)):
 
 
 @router.post('/request_email')
-async def request_email(body: RequestEmail, background_tasks: BackgroundTasks, request: Request,
-                        db: AsyncSession = Depends(get_db)):
+async def request_email(body: RequestEmail, background_tasks: BackgroundTasks, request: Request,db: AsyncSession = Depends(get_db)):
+     
+    """Handles email confirmation requests.
+
+        This endpoint receives a request to send a confirmation email to a user. If the user's email is already confirmed,
+        it returns a message indicating so. Otherwise, it schedules an email to be sent in the background and returns a message
+        prompting the user to check their email for confirmation.
+        
+        Args:
+            body (RequestEmail): The request body containing the user's email address.
+            background_tasks (BackgroundTasks): FastAPI background tasks manager for scheduling email sending.
+            request (Request): The incoming HTTP request object, used to extract base URL.
+            db (AsyncSession, optional): Database session dependency.
+        Returns:
+            dict: A message indicating whether the email is already confirmed or instructing the user to check their email.
+    """
     user = await repositories_users.get_user_by_email(body.email, db)
 
     if user.confirmed:
@@ -96,6 +155,20 @@ async def request_email(body: RequestEmail, background_tasks: BackgroundTasks, r
 
 @router.get('/{username}')
 async def request_email(username: str, response: Response, db: AsyncSession = Depends(get_db)):
+    """
+    Handles a request to track when a user opens an email by their username.
+
+    Args:
+        username (str): The username of the user who opened the email.
+        response (Response): The HTTP response object.
+        db (AsyncSession, optional): The asynchronous database session dependency.
+
+    Returns:
+        FileResponse: An inline PNG image used as a tracking pixel.
+
+    Side Effects:
+        Logs to the console that the user has opened the email and simulates saving this event to the database.
+    """
     print('--------------------------------')
     print(f'{username} зберігаємо що він відкрив email в БД')
     print('--------------------------------')
