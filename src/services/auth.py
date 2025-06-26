@@ -179,10 +179,11 @@ class Auth:
         user_hash = str(email)
 
         user = self.cache.get(user_hash)
-
+        
         if user is None:
-            print("User from database")
+            print("GET_CURRENT_USER EMAIL:", email)
             user = await repository_users.get_user_by_email(email, db)
+            print("GET_CURRENT_USER FOUND:", user)
             if user is None:
                 raise credentials_exception
         else:

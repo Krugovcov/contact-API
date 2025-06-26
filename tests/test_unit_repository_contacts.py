@@ -48,7 +48,7 @@ class TestContactsRepository(unittest.IsolatedAsyncioTestCase):
         result = await get_contacts(limit=10, offset=0, db=mock_db, user=user, name="Alice", secondname=None, email="abracadabra@example.com")
         self.assertEqual(result, contacts)
 
-    async def test_create_dcontact(self):
+    async def test_create_contact(self):
         body = ContactBookSchema(
             name="Alice",
             secondname="Smith",

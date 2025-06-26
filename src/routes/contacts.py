@@ -1,7 +1,9 @@
+import logging
 from fastapi import APIRouter, HTTPException, Depends, status, Path, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 from fastapi_limiter.depends import RateLimiter
 
+from src.conf import messages
 from src.database.db import get_db
 from src.repository import contacts as repositories_contacts
 from src.schemas.contact import ContactBookSchema, ContactBookSchemaUpdateSchema, ContactBookResponse
@@ -31,14 +33,14 @@ async def birthday(
 
 @router.get('/', response_model=list[ContactBookResponse])
 async def get_contacts(
-    limit: int = Query(10, ge=10, le=500), 
-    offset: int = Query(0, ge=0),
-    name: str = Query(None), 
-    secondname: str = Query(None), 
-    email: str = Query(None), 
+    limit: int = 10,
+    offset: int = 0,
+    name: str = None,
+    secondname: str = None,
+    email: str = None,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(auth_service.get_current_user)):
-
+    current_user: User = Depends(auth_service.get_current_user),
+):
     """
     Retrieve a list of contacts with optional filtering and pagination.
     Args:
@@ -55,10 +57,20 @@ async def get_contacts(
         HTTPException: If an internal server error occurs.
     """
     
+    logging.info(f"GET_CURRENT_USER: {current_user}")
     try:
-        return await repositories_contacts.get_contacts(limit, offset, db, name, secondname, email, current_user.id)
+        contacts = await repositories_contacts.get_contacts(
+            limit=limit,
+            offset=offset,
+            db=db,
+            user=current_user,
+            name=name,
+            secondname=secondname,
+            email=email
+        )
+        logging.info(f"CONTACTS RETURNED: {contacts}")
+        return contacts
     except Exception as e:
-        import logging
         logging.error(f"Error in get_contacts: {e}")
         raise HTTPException(status_code=500, detail="Internal server error")
 
@@ -85,7 +97,7 @@ async def get_contact_by_id(
     """
     contact = await repositories_contacts.get_contact_by_id(contact_id, db, current_user.id)
     if not contact:
-        raise HTTPException(status_code=404, detail="Contact not found")
+        raise HTTPException(status_code=404, detail=messages.CONTACT_NOT_FOUND)
     return contact
 
 @router.post(
@@ -141,7 +153,7 @@ async def update_contact(
     """
     contact = await repositories_contacts.update_contact(contact_id, body, db, current_user.id)
     if not contact:
-        raise HTTPException(status_code=404, detail="Contact not found")
+        raise HTTPException(status_code=404, detail=messages.CONTACT_NOT_FOUND)
     return contact
 
 

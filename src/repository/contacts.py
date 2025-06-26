@@ -7,7 +7,7 @@ from src.schemas.contact import ContactBookSchema, ContactBookSchemaUpdateSchema
 
 
 
-async def get_contacts(limit: int, offset: int, db: AsyncSession, user: User, name: str = None, secondname: str = None, email: str = None, user_id: int = None):
+async def get_contacts(limit: int, offset: int, db: AsyncSession, user: User, name: str = None, secondname: str = None, email: str = None):
     """
     Retrieve a list of contacts from the database with optional filtering and pagination.
     Args:
@@ -22,8 +22,6 @@ async def get_contacts(limit: int, offset: int, db: AsyncSession, user: User, na
         List[ContactBook]: A list of contacts matching the specified filters and pagination.
     """
     stmt = select(ContactBook).filter(ContactBook.user_id == user.id)
-    if user_id is not None:
-        stmt = stmt.filter(ContactBook.user_id == user_id)
     if name:
         stmt = stmt.filter(ContactBook.name.ilike(f'%{name}%'))
     if secondname:
@@ -33,7 +31,6 @@ async def get_contacts(limit: int, offset: int, db: AsyncSession, user: User, na
     stmt = stmt.offset(offset).limit(limit)
     result = await db.execute(stmt)
     return result.scalars().all()
-
 
 async def get_contacts_birthday(db: AsyncSession, user_id: int):
     """
